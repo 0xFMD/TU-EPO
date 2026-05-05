@@ -8,6 +8,11 @@ __pycache__/
 # C extensions
 *.so
 
+# C compiled binaries
+projects/*/main
+class-exercises/c/**/ex[0-9]
+class-exercises/c/**/ex[0-9][0-9]
+
 # Distribution / packaging
 .Python
 build/

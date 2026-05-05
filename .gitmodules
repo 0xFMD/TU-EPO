@@ -1,0 +1,3 @@
+[submodule "reference/c-bootcamp"]
+	path = reference/c-bootcamp
+	url = https://github.com/SAFCSP-Team/c-bootcamp
