@@ -13,10 +13,11 @@ On Linux systems, EDID data can typically be found in the `/sys/class/drm/` dire
 ```bash
 cat /sys/class/drm/{selected source}/edid > edid.bin
 ```
-
-[!NOTE] where `selected source` is the specific display you want to read from (e.g, `card1-DP-1`).
-
 This command reads the EDID data from the specified display and saves it to a file named `edid.bin`, which can then be parsed by the C program to extract the relevant information.
+
+> [!NOTE]
+> `selected source` is the specific display you want to read from (e.g, `card1-DP-1`).
+
 
 ## Files
 
