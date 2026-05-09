@@ -30,7 +30,7 @@ typedef unsigned char byte;
 typedef struct MonitorInfo {
   // header
   unsigned long signature;
-  unsigned int vendor_id; // 24-bit big endian
+  unsigned int vendor_id;
   unsigned int serial_number;
   unsigned short product_code;
 
@@ -80,8 +80,10 @@ void unpackData(MonitorInfo *pMonitorInfo, char *filename) {
 
   void *pReadData = malloc(LAYOUT_SIZE);
 
-  if (!pReadData)
+  if (!pReadData) {
+    fclose(fh);
     return;
+  }
 
   fread(pReadData, LAYOUT_SIZE, 1, fh);
   fclose(fh);
