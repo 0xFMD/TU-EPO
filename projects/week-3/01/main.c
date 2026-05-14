@@ -26,6 +26,9 @@ size_t getFileSize(FILE *fh) {
   return size;
 };
 
+
+
+
 PMD splitFile(FILE *originalFile, char *fileName, int numPartitions,
               PMD fileMetaData) {
   if (!originalFile)
@@ -65,7 +68,7 @@ PMD splitFile(FILE *originalFile, char *fileName, int numPartitions,
     fclose(pPartitionFile);
   }
 
-  printf("\n\nfileName:%s\npartition:%d\nfileSize:%d\nblockSize:%"
+  printf("\nmetadata .pmd:\nfileName:%s\npartition:%d\nfileSize:%d\nblockSize:%"
          "d\nlastBlockSize: %d\n",
          fileMetaData.fileName, fileMetaData.numPartitions,
          fileMetaData.fileSize, fileMetaData.blockSize,
@@ -75,10 +78,14 @@ PMD splitFile(FILE *originalFile, char *fileName, int numPartitions,
   return fileMetaData;
 }
 
+
+
+
 void validateMetaData(PMD fileMetaData, char *fileName, char operationType) {
   char originalFileName[128];
   char partitionFilename[128];
 
+  // remove .pmd
   strncpy(originalFileName, fileName, strlen(fileName) - 4);
   originalFileName[strlen(fileName) - 4] = '\0';
 
@@ -87,7 +94,7 @@ void validateMetaData(PMD fileMetaData, char *fileName, char operationType) {
     exit(1);
   }
 
-  printf("\n\nValidating files\n", operationType);
+  printf("\n\nValidating files\n");
 
   for (int i = 0; i < fileMetaData.numPartitions; i++) {
     sprintf(partitionFilename, "%s.%d", fileMetaData.fileName, i + 1);
@@ -105,20 +112,27 @@ void validateMetaData(PMD fileMetaData, char *fileName, char operationType) {
       exit(1);
     }
     printf("\n%s: Done!", partitionFilename);
+    fclose(fh);
   }
 }
+
+
+
 
 void mergeFiles(PMD fileMetaData, int numRotations) {
   printf("\n\nMerging files with %d rotations\n", numRotations);
 
   char mergedFileName[128];
   char partitionFilename[128];
-  unsigned char *baseOffsets[fileMetaData.numPartitions];
 
   sprintf(mergedFileName, !numRotations ? "merged.%s" : "rotation_merged.%s",
           fileMetaData.fileName);
 
   FILE *mergedFile = fopen(mergedFileName, "wb");
+
+  /* to map blocks with their sizes */
+  unsigned char *blockPtrs[fileMetaData.numPartitions];
+  int blockSizes[fileMetaData.numPartitions];
 
   unsigned char *bufferFile = (unsigned char *)malloc(fileMetaData.fileSize);
 
@@ -126,22 +140,20 @@ void mergeFiles(PMD fileMetaData, int numRotations) {
     sprintf(partitionFilename, "%s.%d", fileMetaData.fileName, i + 1);
 
     FILE *fh = fopen(partitionFilename, "rb");
-    int blockSize = (i == fileMetaData.numPartitions - 1)
+    blockSizes[i] = (i == fileMetaData.numPartitions - 1)
                         ? fileMetaData.lastBlockSize
                         : fileMetaData.blockSize;
 
-    if (numRotations) {
-      baseOffsets[i] =
-          bufferFile + (fileMetaData.blockSize *
-                        ((i + numRotations) % fileMetaData.numPartitions));
-    } else {
-      baseOffsets[i] = bufferFile + (fileMetaData.blockSize * i);
-    }
-    fread(baseOffsets[i], 1, blockSize, fh);
+    blockPtrs[i] = bufferFile + (fileMetaData.blockSize * i);
+    fread(blockPtrs[i], 1, blockSizes[i], fh);
     fclose(fh);
   }
 
-  fwrite(bufferFile, fileMetaData.fileSize, 1, mergedFile);
+  for (int i = 0; i < fileMetaData.numPartitions; i++) {
+    int blockIndex = (i + numRotations) % fileMetaData.numPartitions;
+    fwrite(blockPtrs[blockIndex], 1, blockSizes[blockIndex], mergedFile);
+  }
+
   free(bufferFile);
   fclose(mergedFile);
 }
@@ -163,8 +175,15 @@ int main(int argc, char **argv) {
   if (!originalFile)
     return 1;
 
+
+
   switch (operationType) {
   case 'p': {
+    if (argc != 4) {
+      printf("Usage: %s -p <filename> <number of partitions>\n", argv[0]);
+      return 1;
+    }
+
     int numPartitions = atoi(argv[3]);
 
     if (numPartitions < 4 || numPartitions > 16) {
@@ -184,6 +203,7 @@ int main(int argc, char **argv) {
     break;
   }
   case 'm': {
+
     if (strcmp(inputFileName + strlen(inputFileName) - 4, ".pmd") != 0) {
       printf("file must be a .pmd file");
       return 1;
