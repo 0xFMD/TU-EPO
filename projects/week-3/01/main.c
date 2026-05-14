@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <time.h>
 
 #define mb_1 1024 * 1024
 
@@ -9,8 +10,10 @@ typedef struct PMD {
   char fileName[128];
   int fileSize;
   int numPartitions;
+  int numOfFakePartition;
   int blockSize;
   int lastBlockSize;
+  unsigned short fakeFileFlags; // single bit = 1 fake else 0 real
 } PMD;
 
 size_t getFileSize(FILE *fh) {
@@ -26,11 +29,13 @@ size_t getFileSize(FILE *fh) {
   return size;
 };
 
-
-
+void generateRandomBlock(unsigned char *buffer, int size) {
+  for (int i = 0; i < size; i++)
+    buffer[i] = rand() % 256;
+}
 
 PMD splitFile(FILE *originalFile, char *fileName, int numPartitions,
-              PMD fileMetaData) {
+              int numOfFakePartition, PMD fileMetaData) {
   if (!originalFile)
     return fileMetaData;
   size_t size = getFileSize(originalFile);
@@ -42,9 +47,12 @@ PMD splitFile(FILE *originalFile, char *fileName, int numPartitions,
 
   int blockSize = (size % numPartitions == 0) ? size / numPartitions
                                               : size / numPartitions + 1;
+  int totalPartition = numPartitions + numOfFakePartition;
 
   strcpy(fileMetaData.fileName, fileName);
   fileMetaData.numPartitions = numPartitions;
+  fileMetaData.numOfFakePartition =
+      numOfFakePartition > 0 ? numOfFakePartition : 0;
   fileMetaData.fileSize = size;
   fileMetaData.blockSize = blockSize;
 
@@ -52,20 +60,27 @@ PMD splitFile(FILE *originalFile, char *fileName, int numPartitions,
   printf("Block size: %d bytes\n\n", blockSize);
 
   unsigned char *pBuffer = (unsigned char *)malloc(blockSize);
+  for (int i = 0; i < totalPartition; i++) {
+    int isFake = (fileMetaData.fakeFileFlags & (1 << i)) != 0;
 
-  for (int i = 0; i < numPartitions; i++) {
-    size_t totalBytesRead = fread(pBuffer, 1, blockSize, originalFile);
-    if (i == numPartitions - 1)
-      fileMetaData.lastBlockSize = totalBytesRead;
+    size_t remainingBytesToWrite;
 
-    char partitionFilename[128];
-    sprintf(partitionFilename, "%s.%d", fileName, i + 1);
-    printf("%s: %d bytes\n", partitionFilename, totalBytesRead);
+    if (isFake) {
+      generateRandomBlock(pBuffer, blockSize);
+      remainingBytesToWrite = blockSize;
+    } else {
+      remainingBytesToWrite = fread(pBuffer, 1, blockSize, originalFile);
+      fileMetaData.lastBlockSize = remainingBytesToWrite;
+    }
 
-    FILE *pPartitionFile = fopen(partitionFilename, "wb");
-    fwrite(pBuffer, 1, totalBytesRead, pPartitionFile);
+    char name[128];
+    sprintf(name, "%s.%d", fileName, i + 1);
+    printf("%s - %d bytes%s\n", name, remainingBytesToWrite,
+           isFake ? " fake" : "");
 
-    fclose(pPartitionFile);
+    FILE *out = fopen(name, "wb");
+    fwrite(pBuffer, 1, remainingBytesToWrite, out);
+    fclose(out);
   }
 
   printf("\nmetadata .pmd:\nfileName:%s\npartition:%d\nfileSize:%d\nblockSize:%"
@@ -77,9 +92,6 @@ PMD splitFile(FILE *originalFile, char *fileName, int numPartitions,
 
   return fileMetaData;
 }
-
-
-
 
 void validateMetaData(PMD fileMetaData, char *fileName, char operationType) {
   char originalFileName[128];
@@ -116,27 +128,34 @@ void validateMetaData(PMD fileMetaData, char *fileName, char operationType) {
   }
 }
 
-
-
-
-void mergeFiles(PMD fileMetaData, int numRotations) {
+void mergeFiles(PMD fileMetaData, int numRotations, int isMergeWithFakeFiles,
+                char *outFileName) {
   printf("\n\nMerging files with %d rotations\n", numRotations);
 
   char mergedFileName[128];
+  char outputFileName[128];
   char partitionFilename[128];
 
   sprintf(mergedFileName, !numRotations ? "merged.%s" : "rotation_merged.%s",
           fileMetaData.fileName);
 
+  sprintf(outputFileName, "%s.out", outFileName ? outFileName : "");
+
   FILE *mergedFile = fopen(mergedFileName, "wb");
+  FILE *outputFile = isMergeWithFakeFiles ? fopen(outputFileName, "wb") : NULL;
+
+  int totalPartition =
+      fileMetaData.numPartitions + fileMetaData.numOfFakePartition;
 
   /* to map blocks with their sizes */
-  unsigned char *blockPtrs[fileMetaData.numPartitions];
-  int blockSizes[fileMetaData.numPartitions];
+  unsigned char *blockPtrs[totalPartition];
+  int blockSizes[totalPartition];
+  int bufferSize = fileMetaData.blockSize * totalPartition;
 
-  unsigned char *bufferFile = (unsigned char *)malloc(fileMetaData.fileSize);
+  unsigned char *bufferFile = (unsigned char *)malloc(bufferSize);
 
-  for (int i = 0; i < fileMetaData.numPartitions; i++) {
+  for (int i = 0; i < totalPartition; i++) {
+
     sprintf(partitionFilename, "%s.%d", fileMetaData.fileName, i + 1);
 
     FILE *fh = fopen(partitionFilename, "rb");
@@ -145,21 +164,39 @@ void mergeFiles(PMD fileMetaData, int numRotations) {
                         : fileMetaData.blockSize;
 
     blockPtrs[i] = bufferFile + (fileMetaData.blockSize * i);
+
     fread(blockPtrs[i], 1, blockSizes[i], fh);
+
     fclose(fh);
   }
 
-  for (int i = 0; i < fileMetaData.numPartitions; i++) {
-    int blockIndex = (i + numRotations) % fileMetaData.numPartitions;
-    fwrite(blockPtrs[blockIndex], 1, blockSizes[blockIndex], mergedFile);
+  // merge with fake files
+  if (isMergeWithFakeFiles) {
+    for (int i = 0; i < totalPartition; i++) {
+      int blockIndex = (i + numRotations) % totalPartition;
+      fwrite(blockPtrs[blockIndex], 1, blockSizes[blockIndex], outputFile);
+    }
+  } else {
+    // real files only
+    for (int i = 0; i < totalPartition; i++) {
+      int blockIndex = (i + numRotations) % totalPartition;
+      int isFake = (fileMetaData.fakeFileFlags & (1 << i)) != 0;
+
+      if (isFake)
+        continue;
+
+      fwrite(blockPtrs[blockIndex], 1, blockSizes[blockIndex], mergedFile);
+    }
   }
 
   free(bufferFile);
   fclose(mergedFile);
+  if (isMergeWithFakeFiles)
+    fclose(outputFile);
 }
-
 int main(int argc, char **argv) {
 
+  srand(time(NULL));
   if (argc < 3) {
     printf("Usage: %s <operation type:(-p | -m)> <filename> <number of "
            "partitions> "
@@ -170,29 +207,56 @@ int main(int argc, char **argv) {
 
   char operationType = argv[1][1];
   char *inputFileName = argv[2];
+  char *outFileName = NULL;
+
   PMD fileMetaData;
   FILE *originalFile = fopen(inputFileName, "rb");
   if (!originalFile)
     return 1;
 
-
-
   switch (operationType) {
   case 'p': {
-    if (argc != 4) {
+    char RandomOption = argc > 4 ? argv[4][1] : '\0';
+
+    if (argc != 6 && argc != 4) {
       printf("Usage: %s -p <filename> <number of partitions>\n", argv[0]);
       return 1;
     }
 
     int numPartitions = atoi(argv[3]);
 
-    if (numPartitions < 4 || numPartitions > 16) {
-      printf("partitions must be between 4 and 16\n");
+    if (numPartitions < 2 || numPartitions > 8) {
+      printf("partitions must be between 2 and 8\n");
       return 1;
     }
 
-    fileMetaData =
-        splitFile(originalFile, inputFileName, numPartitions, fileMetaData);
+    int numOfFakeFile = 0;
+    fileMetaData.fakeFileFlags = 0;
+
+    if (RandomOption == 'R') {
+      if (argc != 6) {
+        printf("Usage: %s -p <filename> <number of partitions> -R <random "
+               "number>\n",
+               argv[0]);
+        return 1;
+      }
+
+      numOfFakeFile = atoi(argv[5]);
+      int totalPartitions = numPartitions + numOfFakeFile;
+
+      int currentfakeFilePos = 0;
+      while (currentfakeFilePos < numOfFakeFile) {
+        int pos = rand() % totalPartitions;
+        int bitMask = 1 << pos;
+        if (!(fileMetaData.fakeFileFlags & bitMask)) {
+          fileMetaData.fakeFileFlags = fileMetaData.fakeFileFlags | bitMask;
+          currentfakeFilePos++;
+        }
+      }
+    }
+
+    fileMetaData = splitFile(originalFile, inputFileName, numPartitions,
+                             numOfFakeFile, fileMetaData);
 
     char outMetaDataFileName[128];
     sprintf(outMetaDataFileName, "%s.pmd", inputFileName);
@@ -211,8 +275,9 @@ int main(int argc, char **argv) {
 
     int numRotations = 0;
     char secondOption = argc > 4 ? argv[3][1] : '\0';
+    char RandomOption = argc > 4 ? argv[3][1] : '\0';
 
-    if (argc == 4 && secondOption != 'r') {
+    if ((argc == 4 && (secondOption != 'r' || RandomOption != 'R'))) {
       printf("Usage: %s -m <filename> [-r <rotation number>]\n", argv[0]);
       return 1;
     }
@@ -220,18 +285,33 @@ int main(int argc, char **argv) {
     if (secondOption == 'r')
       numRotations = atoi(argv[4]);
 
+    int isMergeWithFakeFiles = RandomOption == 'R';
+
+    if (isMergeWithFakeFiles) {
+      if (argc != 5) {
+        printf("Usage: %s -m <filename> [-r <rotation number>] -R  <output "
+               "file name>\n",
+               argv[0]);
+        return 1;
+      }
+      outFileName = argv[4];
+    }
+
     PMD fileMetaData;
     fread(&fileMetaData, sizeof(PMD), 1, originalFile);
 
     printf("\n\nReading file name: %s\nsource "
-           "file: %s\npartition: %d\nfileSize: %d\nblockSize:%"
+           "file: %s\npartition: %d\nfakePartitions: %d\nfileSize: "
+           "%d\nblockSize:%"
            "d\nlastBlockSize: %d\n",
            inputFileName, fileMetaData.fileName, fileMetaData.numPartitions,
-           fileMetaData.fileSize, fileMetaData.blockSize,
-           fileMetaData.lastBlockSize);
+           fileMetaData.numOfFakePartition, fileMetaData.fileSize,
+           fileMetaData.blockSize, fileMetaData.lastBlockSize);
 
-    validateMetaData(fileMetaData, inputFileName, secondOption);
-    mergeFiles(fileMetaData, numRotations);
+    if (!isMergeWithFakeFiles)
+      validateMetaData(fileMetaData, inputFileName, secondOption);
+
+    mergeFiles(fileMetaData, numRotations, isMergeWithFakeFiles, outFileName);
 
     break;
   }
