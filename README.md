@@ -15,15 +15,15 @@ TU-EPO/
 
 ## Projects
 
-| Project                                                                                                                                                 | Description                                                                       |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| [Wayboard](https://github.com/0xFMD/wayboard)                                                                                                           | Wayland compositor with an infinite whiteboard for drawing and arranging windows. |
+| Project                                                                                                                                       | Description                                                                       |
+| --------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| [Wayboard](https://github.com/0xFMD/wayboard)                                                                                                 | Wayland compositor with an infinite whiteboard for drawing and arranging windows. |
 | [ZVM with Blobify](projects/week-11/01)                                                                                                       | C virtual machine with segmented memory managed by Blobify.                       |
-| [Simple VM](https://github.com/0xFMD/simple-VM)                                                                                                         | Virtual machine in C with a small instruction set.                                |
+| [Simple VM](https://github.com/0xFMD/simple-VM)                                                                                               | Virtual machine in C with a small instruction set.                                |
 | [VM I/O Devices](projects/week-9/02)                                                                                                          | Virtual machine with simulated input and output devices.                          |
-| [Linux Kernel Modules](https://github.com/0xFMD/linux-kernel-modules)                                                                                   | Linux kernel modules exploring kernel development.                                |
-| [ZASM Assembler](https://github.com/0xFMD/ZASM-Assembler)                                                                                               | Assembler and VM that translate and execute ZASM bytecode.                        |
-| [CNetworks](https://github.com/0xFMD/CNetworks)                                                                                                         | C socket apps for chat, media streaming, and cloud storage.                       |
+| [Linux Kernel Modules](https://github.com/0xFMD/linux-kernel-modules)                                                                         | Linux kernel modules exploring kernel development.                                |
+| [ZASM Assembler](https://github.com/0xFMD/ZASM-Assembler)                                                                                     | Assembler and VM that translate and execute ZASM bytecode.                        |
+| [CNetworks](https://github.com/0xFMD/CNetworks)                                                                                               | C socket apps for chat, media streaming, and cloud storage.                       |
 | [ELF Parser](https://github.com/0xFMD/zo-class-projects/tree/fe127d6a21ac2529052895ca7785940fc64943ee/week13/Projects/Project01)              | Inspect headers, sections, symbols, and relocations in 64-bit ELF object files.   |
 | [Memory Management API](projects/week-10/01)                                                                                                  | C API for allocating, cloning, comparing, and resizing memory blocks.             |
 | [Blobify](projects/week-10/02)                                                                                                                | C memory manager with a blob-based API.                                           |
@@ -38,27 +38,28 @@ TU-EPO/
 
 ## Group Projects
 
-| Project                                                                     | Description                                                               |
-| --------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| [Packify](https://github.com/0xFMD/Packify)                                 | Command-line tool for creating, editing, and extracting `.PA` archives.   |
-| [Task Manager Reimagined](https://github.com/0xFMD/Task-Manager-Reimagined) | Desktop process visualizer with resource monitoring and process controls. |
-| [Binary File Partitioning and Merging](group-projects/week-3/01)  | Split and reassemble binary files, with optional partition rotation.      |
-| [Student Records](group-projects/week-4/01)                       | Student record management using a doubly linked list.                     |
-| [Generic Doubly Linked List](group-projects/week-4/02)            | C linked list supporting different data types.                            |
-| [Terminal Bitmap](group-projects/week-4/03)                       | Render a bitmap in the terminal using C.                                  |
-| [PDF Hash Visualization](group-projects/week-4/04)                | Visualize a PDF file hash to detect changes.                              |
-| [XOR File Encoder](group-projects/week-4/05)                      | Encode and decode files with a file-derived XOR key.                      |
-| [Simple VM](group-projects/week-6)                                | C virtual machine with arithmetic and bitwise instructions.               |
-| [Virtual Machine](group-projects/week-7/01)                       | C virtual machine with memory, registers, functions, and flags.           |
-| [JSON and YAML Generator](group-projects/week-11)                 | Generate JSON and YAML files in C.                                        |
+| Project                                                                     | Description                                                                               |
+| --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| [Packify](https://github.com/0xFMD/Packify)                                 | Command-line tool for creating, editing, and extracting `.PA` archives.                   |
+| [Task Manager Reimagined](https://github.com/0xFMD/Task-Manager-Reimagined) | Desktop process visualizer with resource monitoring and process controls.                 |
+| [V6O](https://github.com/m7md-d/V6O)                                        | Automated pour-over coffee machine using ESP32, with customizable patterns and intervals. |
+| [Binary File Partitioning and Merging](group-projects/week-3/01)            | Split and reassemble binary files, with optional partition rotation.                      |
+| [Student Records](group-projects/week-4/01)                                 | Student record management using a doubly linked list.                                     |
+| [Generic Doubly Linked List](group-projects/week-4/02)                      | C linked list supporting different data types.                                            |
+| [Terminal Bitmap](group-projects/week-4/03)                                 | Render a bitmap in the terminal using C.                                                  |
+| [PDF Hash Visualization](group-projects/week-4/04)                          | Visualize a PDF file hash to detect changes.                                              |
+| [XOR File Encoder](group-projects/week-4/05)                                | Encode and decode files with a file-derived XOR key.                                      |
+| [Simple VM](group-projects/week-6)                                          | C virtual machine with arithmetic and bitwise instructions.                               |
+| [Virtual Machine](group-projects/week-7/01)                                 | C virtual machine with memory, registers, functions, and flags.                           |
+| [JSON and YAML Generator](group-projects/week-11)                           | Generate JSON and YAML files in C.                                                        |
 
 ## Bootcamp Solutions
 
-| Resource                                                       | Description                                |
-| -------------------------------------------------------------- | ------------------------------------------ |
-| [Bootcamp Solutions](bootcamp-solutions/README.md)             | C bootcamp exercises and Python solutions. |
-| [Python 101](bootcamp-solutions/python/zo-python101/README.md) | Introductory Python content and solutions. |
-| [Class Exercises](class-exercises/README.md)                   | In-class programming exercises.            |
+| Resource                                             | Description                                |
+| ---------------------------------------------------- | ------------------------------------------ |
+| [Bootcamp Solutions](bootcamp-solutions)             | C bootcamp exercises and Python solutions. |
+| [Python 101](bootcamp-solutions/python/zo-python101) | Introductory Python content and solutions. |
+| [Class Exercises](class-exercises)                   | In-class programming exercises.            |
 
 ## Reference
 
